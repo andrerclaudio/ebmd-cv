@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Built-in modules
 import argparse
 import logging
 import sys
-
-# Added modules
 import cv2
 
 # Configure logging
@@ -15,12 +12,20 @@ logging.basicConfig(
 )
 
 
-def application(ip: str, user: str, password: str, port: str) -> None:
-    """ """
+def application(ip: str, user: str, password: str, port: str = "554") -> None:
+    """
+    Main application for connecting to an RTSP stream and displaying it using OpenCV.
 
-    # RTSP URL
+    Args:
+        ip (str): The IP address of the RTSP server.
+        user (str): The username for RTSP authentication.
+        password (str): The password for RTSP authentication.
+        port (str): The port for the RTSP server. Defaults to 554.
+
+    Raises:
+        SystemExit: If an error occurs during stream fetching or processing.
+    """
     rtsp_url = f"rtsp://{user}:{password}@{ip}:{port}/cam/realmonitor?channel=1&subtype=0&unicast=true"
-
     cap = None
 
     try:
@@ -31,7 +36,7 @@ def application(ip: str, user: str, password: str, port: str) -> None:
 
         if not cap.isOpened():
             logging.error("Error: Couldn't open the video stream.")
-            exit(1)
+            sys.exit(1)
 
         # Create a named window in OpenCV
         cv2.namedWindow("RTSP Stream", cv2.WND_PROP_FULLSCREEN)
@@ -41,8 +46,6 @@ def application(ip: str, user: str, password: str, port: str) -> None:
 
         # Read and display the stream
         while True:
-
-            # Read a frame from the stream and decode it
             ret, frame = cap.read()
 
             if not ret:
@@ -57,33 +60,33 @@ def application(ip: str, user: str, password: str, port: str) -> None:
                 break
 
     except cv2.error as e:
-        # Log the OpenCV error and exit with an error code
+        # Handle OpenCV-specific errors
         logging.error(f"OpenCV Error: {e}")
         sys.exit(1)
 
     except KeyboardInterrupt:
-        # Exit the application gracefully
+        # Graceful shutdown on keyboard interrupt
         logging.info("ebmd-cv received a keyboard interrupt.")
 
     except Exception as e:
-        # Log the exception and exit with an error code
+        # General exception handling
         logging.error(f"An error occurred: {e}")
         sys.exit(1)
 
     finally:
-        # Release resources and exit
-        if cap.isOpened():
+        # Release resources and close the OpenCV windows
+        if cap is not None and cap.isOpened():
             cap.release()
             cv2.destroyAllWindows()
 
-    # Log successful completion of the application
     logging.info("ebmd-cv has finished successfully.")
     sys.exit(0)
 
 
 if __name__ == "__main__":
-    """ """
-
+    """
+    Parses command-line arguments and starts the RTSP stream application.
+    """
     parser = argparse.ArgumentParser(description="RTSP stream viewer.")
 
     # Add required command-line arguments
@@ -95,11 +98,11 @@ if __name__ == "__main__":
         "--password", required=True, help="Password for RTSP authentication."
     )
     parser.add_argument(
-        "--port", required=False, default="554", help="Port for RTSP (optional)."
+        "--port", default="554", help="Port for RTSP (optional, defaults to 554)."
     )
 
     # Parse the arguments from the command line
     args = parser.parse_args()
 
-    # Start the main application with the parsed arguments, defaulting to port 554 if none is provided
+    # Start the main application with the parsed arguments
     application(args.ip, args.user, args.password, args.port)
